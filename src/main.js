@@ -2,7 +2,9 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { AnimationUtils } from "three";
+import * as SkeletonUtils  from "three/examples/jsm/utils/SkeletonUtils.js";
 
+const clock = new THREE.Clock();
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x111111);
 
@@ -29,84 +31,109 @@ const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
 dirLight.position.set(5, 10, 7.5);
 scene.add(dirLight);
 
-let dinoMixer, pteroMixer;
-
+let dinoMixer;
+let dinoModel;
+const mixers = [];
+const obstacles = [];
 const loader = new GLTFLoader();
+const cactusList = [];
+let pteroModel = null;
+let pteroClip = null;
 
 // 🦖 Dinosaur
-loader.load(
-    "dino.glb",
-    function (gltf) {
-        const model = gltf.scene;
-        model.scale.set(0.1, 0.1, 0.1); // shrink dino
-        scene.add(model);
+loader.load("dino.glb", (gltf) => {
+    dinoModel = gltf.scene;
+    dinoModel.scale.set(0.1, 0.1, 0.1);
+    dinoModel.rotation.y = Math.PI;
+    dinoModel.position.set(-2, 0, 0);
+    scene.add(dinoModel);
 
-        if (gltf.animations.length > 0) {
-            dinoMixer = new THREE.AnimationMixer(model);
-            const fullClip = gltf.animations[0];
-            const runClip = AnimationUtils.subclip(fullClip, "RunOnly", 0, 125);
-            const action = dinoMixer.clipAction(runClip);
-            action.setLoop(THREE.LoopRepeat);
-            action.play();
-        }
-    },
-    undefined,
-    function (error) {
-        console.error("Error loading dinosaur:", error);
+    if (gltf.animations.length > 0) {
+        dinoMixer = new THREE.AnimationMixer(dinoModel);
+        mixers.push(dinoMixer);
+        const runClip = AnimationUtils.subclip(gltf.animations[0], "RunOnly", 0, 125);
+        const action = dinoMixer.clipAction(runClip);
+        action.setLoop(THREE.LoopRepeat);
+        action.play();
     }
-);
+});
 
-// 🦅 Pterodactyl
-loader.load(
-    "flying_pterodactyl.glb",
-    function (gltf) {
-        const model = gltf.scene;
-        model.scale.set(1.5, 1.5, 1.5); // adjust size to match dino scale
-        scene.add(model);
+// 🦅 Pterodactyl template (store mesh + animation separately)
+loader.load("flying_pterodactyl.glb", (gltf) => {
+    console.log("Loaded pterodactyl");
+    pteroModel = gltf.scene;
+    pteroClip = gltf.animations[0];
+});
 
-        if (gltf.animations.length > 0) {
-            pteroMixer = new THREE.AnimationMixer(model);
-            const action = pteroMixer.clipAction(gltf.animations[0]); // full flying loop
-            action.setLoop(THREE.LoopRepeat);
-            action.play();
-        }
-    },
-    undefined,
-    function (error) {
-        console.error("Error loading pterodactyl:", error);
-    }
-);
+// 🌵 Cactus library
+loader.load("cactus__pack.glb", (gltf) => {
+    const cactusRoot = gltf.scene.children[0].children[0].children[0];
+    cactusRoot.traverse((child) => {
+        if (child.isMesh) cactusList.push(child);
+    });
+});
 
-// 🌵 Cactus (static)
-loader.load(
-    "cactus__pack.glb",
-    function (gltf) {
-        const cactusRoot = gltf.scene.children[0].children[0].children[0];
-        const cactusList = [];
-        cactusRoot.traverse((child) => {
-            if (child.isMesh) cactusList.push(child);
-        });
+function spawnCactus() {
+    if (cactusList.length === 0) return;
+    const cactus = cactusList[Math.floor(Math.random() * cactusList.length)].clone();
+    cactus.scale.set(0.5, 0.5, 0.5);
+    cactus.rotation.x = Math.PI/-2;
+    cactus.position.set(-2, 0, -10);
+    cactus.name = "obstacle";
+    scene.add(cactus);
+    obstacles.push(cactus);
+}
 
-        const randomIndex = Math.floor(Math.random() * cactusList.length);
-        const cactus = cactusList[randomIndex].clone();
-        cactus.scale.set(0.5, 0.5, 0.5); // scale to match scene
-        scene.add(cactus);
-    },
-    undefined,
-    function (error) {
-        console.error("Error loading cactus pack:", error);
-    }
-);
+function spawnPterodactyl() {
+    if (!pteroModel || !pteroClip) return;
 
-const clock = new THREE.Clock();
+    const ptero = SkeletonUtils.clone(pteroModel);
+    // ptero.scale.set(0.3, 0.3, 0.3);
+    ptero.rotation.y = Math.PI;
+    ptero.position.set(-2, 1.5, -10);
+    ptero.name = "obstacle";
+
+    // Force visibility
+    ptero.visible = true;
+    scene.add(ptero);
+    obstacles.push(ptero);
+
+    const mixer = new THREE.AnimationMixer(ptero);
+    const action = mixer.clipAction(pteroClip);
+    action.reset();
+    action.setLoop(THREE.LoopRepeat);
+    action.play();
+    mixers.push(mixer);
+}
+
+let lastSpawn = 0;
+const spawnInterval = 2;
+const speed = 5;
+
 function animate() {
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
-    if (dinoMixer) dinoMixer.update(delta * 5);
-    if (pteroMixer) pteroMixer.update(delta);
+    mixers.forEach((m) => m.update(delta));
+
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obj = obstacles[i];
+        obj.position.z += speed * delta;
+        if (obj.position.x < -10) {
+            scene.remove(obj);
+            obstacles.splice(i, 1);
+        }
+    }
+
+    const time = clock.elapsedTime;
+    if (time - lastSpawn > spawnInterval) {
+        Math.random() > 0.5 ? spawnCactus() : spawnPterodactyl();
+        lastSpawn = time;
+    }
+
     controls.update();
     renderer.render(scene, camera);
 }
+
 animate();
 
 window.addEventListener("resize", () => {
