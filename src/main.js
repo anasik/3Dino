@@ -45,12 +45,12 @@ loader.load("dino.glb", (gltf) => {
     dinoModel = gltf.scene;
     dinoModel.scale.set(0.1, 0.1, 0.1);
     dinoModel.rotation.y = Math.PI;
-    dinoModel.position.set(-2, 0, 0);
+    dinoModel.position.set(-2, 0, 2);
     scene.add(dinoModel);
 
     if (gltf.animations.length > 0) {
         dinoMixer = new THREE.AnimationMixer(dinoModel);
-        mixers.push(dinoMixer);
+        // mixers.push(dinoMixer);
         const runClip = AnimationUtils.subclip(gltf.animations[0], "RunOnly", 0, 125);
         const action = dinoMixer.clipAction(runClip);
         action.setLoop(THREE.LoopRepeat);
@@ -76,7 +76,7 @@ loader.load("cactus__pack.glb", (gltf) => {
 function spawnCactus() {
     if (cactusList.length === 0) return;
     const cactus = cactusList[Math.floor(Math.random() * cactusList.length)].clone();
-    cactus.scale.set(0.5, 0.5, 0.5);
+    cactus.scale.set(0.2, 0.2, 0.2);
     cactus.rotation.x = Math.PI/-2;
     cactus.position.set(-2, 0, -10);
     cactus.name = "obstacle";
@@ -90,7 +90,7 @@ function spawnPterodactyl() {
     const ptero = SkeletonUtils.clone(pteroModel);
     // ptero.scale.set(0.3, 0.3, 0.3);
     ptero.rotation.y = Math.PI;
-    ptero.position.set(-2, 1.5, -10);
+    ptero.position.set(-2, 0, -10);
     ptero.name = "obstacle";
 
     // Force visibility
@@ -113,6 +113,7 @@ const speed = 5;
 function animate() {
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
+    if (dinoMixer) dinoMixer.update(delta*5);
     mixers.forEach((m) => m.update(delta));
 
     for (let i = obstacles.length - 1; i >= 0; i--) {
