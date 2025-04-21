@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { AnimationUtils } from "three";
-import * as SkeletonUtils  from "three/examples/jsm/utils/SkeletonUtils.js";
+import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 
 const clock = new THREE.Clock();
 const scene = new THREE.Scene();
@@ -153,8 +153,44 @@ window.addEventListener("keyup", (e) => {
     if (e.key === "ArrowDown") resetDinoPose();
 });
 
+let isPaused = false;
+let score = 0;
+const scoreDisplay = document.createElement("div");
+scoreDisplay.style.position = "absolute";
+scoreDisplay.style.top = "10px";
+scoreDisplay.style.left = "10px";
+scoreDisplay.style.color = "white";
+scoreDisplay.style.fontSize = "20px";
+scoreDisplay.style.fontFamily = "monospace";
+scoreDisplay.innerText = "Score: 0";
+document.body.appendChild(scoreDisplay);
+
+const pauseOverlay = document.createElement("div");
+pauseOverlay.style.position = "absolute";
+pauseOverlay.style.top = "0";
+pauseOverlay.style.left = "0";
+pauseOverlay.style.width = "100%";
+pauseOverlay.style.height = "100%";
+pauseOverlay.style.display = "none";
+pauseOverlay.style.alignItems = "center";
+pauseOverlay.style.justifyContent = "center";
+pauseOverlay.style.color = "white";
+pauseOverlay.style.fontSize = "48px";
+pauseOverlay.style.background = "rgba(0, 0, 0, 0.7)";
+pauseOverlay.innerText = "Paused";
+pauseOverlay.style.fontFamily = "sans-serif";
+document.body.appendChild(pauseOverlay);
+
+window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+        isPaused = !isPaused;
+        pauseOverlay.style.display = isPaused ? "flex" : "none";
+    }
+});
+
 function animate() {
     requestAnimationFrame(animate);
+    if (isPaused) return;
     const delta = clock.getDelta();
     if (dinoMixer) dinoMixer.update(delta * 5);
 
@@ -167,6 +203,11 @@ function animate() {
             jumpVelocity = 0;
             isJumping = false;
             dinoModel.position.y = 0;
+            dinoModel.scale.y = THREE.MathUtils.lerp(
+                dinoModel.scale.y,
+                0.1,
+                0.3
+            );
             dinoModel.scale.y = 0.1; // return to normal
         } else {
             dinoModel.position.y = jumpHeight;
@@ -177,14 +218,29 @@ function animate() {
     for (let i = obstacles.length - 1; i >= 0; i--) {
         const obj = obstacles[i];
         obj.position.z += speed * delta;
-        if (obj.position.x < -10) {
+
+        // Game over: simple bounding box collision
+        if (dinoModel && obj.name === "obstacle") {
+            const dinoBox = new THREE.Box3().setFromObject(dinoModel);
+            const objBox = new THREE.Box3().setFromObject(obj);
+            if (dinoBox.intersectsBox(objBox)) {
+                isPaused = true;
+                pauseOverlay.innerText = "Game Over";
+                pauseOverlay.style.display = "flex";
+                return;
+            }
+        }
+
+        if (obj.position.z > camera.position.z + 2) {
             scene.remove(obj);
             obstacles.splice(i, 1);
+            score++;
+            scoreDisplay.innerText = "Score: " + score;
         }
     }
 
     const time = clock.elapsedTime;
-    if (time - lastSpawn > spawnInterval) {
+    if (!isPaused && time - lastSpawn > spawnInterval) {
         Math.random() > 0.5 ? spawnCactus() : spawnPterodactyl();
         lastSpawn = time;
     }
