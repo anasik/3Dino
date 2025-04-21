@@ -17,7 +17,7 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 2, 5);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(window.innerWidth * 0.8, window.innerHeight * 0.8);
 document.body.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -51,7 +51,12 @@ loader.load("dino.glb", (gltf) => {
     if (gltf.animations.length > 0) {
         dinoMixer = new THREE.AnimationMixer(dinoModel);
         // mixers.push(dinoMixer);
-        const runClip = AnimationUtils.subclip(gltf.animations[0], "RunOnly", 0, 125);
+        const runClip = AnimationUtils.subclip(
+            gltf.animations[0],
+            "RunOnly",
+            0,
+            125
+        );
         const action = dinoMixer.clipAction(runClip);
         action.setLoop(THREE.LoopRepeat);
         action.play();
@@ -75,9 +80,10 @@ loader.load("cactus__pack.glb", (gltf) => {
 
 function spawnCactus() {
     if (cactusList.length === 0) return;
-    const cactus = cactusList[Math.floor(Math.random() * cactusList.length)].clone();
+    const cactus =
+        cactusList[Math.floor(Math.random() * cactusList.length)].clone();
     cactus.scale.set(0.2, 0.2, 0.2);
-    cactus.rotation.x = Math.PI/-2;
+    cactus.rotation.x = Math.PI / -2;
     cactus.position.set(-2, 0, -10);
     cactus.name = "obstacle";
     scene.add(cactus);
@@ -110,10 +116,62 @@ let lastSpawn = 0;
 const spawnInterval = 2;
 const speed = 5;
 
+let isDucking = false;
+let isJumping = false;
+let jumpVelocity = 0;
+let jumpHeight = 0;
+const gravity = -20;
+const jumpPower = 8;
+
+function duckDino() {
+    if (!dinoModel || isJumping) return;
+    dinoModel.scale.y = 0.05;
+    dinoModel.position.y = -0.05;
+    isDucking = true;
+}
+
+function resetDinoPose() {
+    if (!dinoModel) return;
+    dinoModel.scale.y = 0.1;
+    dinoModel.position.y = 0;
+    isDucking = false;
+}
+
+function triggerJump() {
+    if (!dinoModel || isJumping) return;
+    isJumping = true;
+    jumpVelocity = jumpPower;
+    dinoModel.scale.y = 0.14; // stretch up for springy effect
+}
+
+window.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown") duckDino();
+    if (e.key === "ArrowUp") triggerJump();
+});
+
+window.addEventListener("keyup", (e) => {
+    if (e.key === "ArrowDown") resetDinoPose();
+});
+
 function animate() {
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
-    if (dinoMixer) dinoMixer.update(delta*5);
+    if (dinoMixer) dinoMixer.update(delta * 5);
+
+    if (isJumping && dinoModel) {
+        jumpVelocity += gravity * delta;
+        jumpHeight += jumpVelocity * delta;
+
+        if (jumpHeight <= 0) {
+            jumpHeight = 0;
+            jumpVelocity = 0;
+            isJumping = false;
+            dinoModel.position.y = 0;
+            dinoModel.scale.y = 0.1; // return to normal
+        } else {
+            dinoModel.position.y = jumpHeight;
+        }
+    }
     mixers.forEach((m) => m.update(delta));
 
     for (let i = obstacles.length - 1; i >= 0; i--) {
