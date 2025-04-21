@@ -182,8 +182,11 @@ pauseOverlay.style.fontFamily = "sans-serif";
 document.body.appendChild(pauseOverlay);
 
 window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
+    if (isPaused && pauseOverlay.innerText === "Game Over") {
+        location.reload();
+    } else if (e.key === "Escape") {
         isPaused = !isPaused;
+        pauseOverlay.innerText = "Paused";
         pauseOverlay.style.display = isPaused ? "flex" : "none";
     }
 });
@@ -227,6 +230,8 @@ function animate() {
                 isPaused = true;
                 pauseOverlay.innerText = "Game Over";
                 pauseOverlay.style.display = "flex";
+                score = 0;
+                scoreDisplay.innerText = "Score: 0";
                 return;
             }
         }
