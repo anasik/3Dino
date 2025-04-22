@@ -1,0 +1,31 @@
+{
+    "manifest_version": 3,
+    "name": "Ghibli Dino Extension",
+    "version": "1.0",
+    "description": "Offline dinosaur game with Ghibli flair",
+    "permissions": [],
+    "host_permissions": ["<all_urls>"],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "sandbox": {
+      "pages": ["game.html"]
+    },
+    "web_accessible_resources": [
+      {
+        "resources": ["game.html", "assets/**"],
+        "matches": ["<all_urls>"]
+      }
+    ],
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"],
+        "run_at": "document_idle"
+      }
+    ],
+    "action": {
+      "default_title": "Ghibli Dino"
+    }
+  }
+  
