@@ -1,0 +1,5 @@
+# Treat all 3D models and font JSONs as binary
+*.glb binary
+*.gltf binary
+*.bin binary
+*.typeface.json binary
