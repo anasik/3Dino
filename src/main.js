@@ -101,7 +101,7 @@ function spawnCactus() {
         cactusList[Math.floor(Math.random() * cactusList.length)].clone();
     cactus.scale.set(0.2, 0.2, 0.2);
     cactus.rotation.x = Math.PI / -2;
-    cactus.position.set(-2, 0, -10);
+    cactus.position.set(-2, 0, -30);
     cactus.name = "obstacle";
     scene.add(cactus);
     obstacles.push(cactus);
@@ -113,7 +113,7 @@ function spawnPterodactyl() {
     const ptero = SkeletonUtils.clone(pteroModel);
     // ptero.scale.set(0.3, 0.3, 0.3);
     ptero.rotation.y = Math.PI;
-    ptero.position.set(-2, 0, -10);
+    ptero.position.set(-2, 0, -30);
     ptero.name = "obstacle";
 
     // Force visibility
@@ -239,7 +239,7 @@ fontLoader.load(
                 size: line.size,
                 height: 1,
                 width: 1,
-                depth: 0.1,
+                depth: 0.01,
                 bevelEnabled: true,
                 bevelSize: 0.005,
                 bevelThickness: 0.01,
@@ -259,7 +259,19 @@ scene.add(textGroup);
 
 window.addEventListener("keydown", (e) => {
     if (!gameStarted) {
-        camera.position.set(0, 2, 5); // rotate to gameplay view
+        const panStart = camera.position.clone();
+        const panEnd = new THREE.Vector3(0, 2, 5);
+        let panProgress = 0;
+        const panDuration = 1.5; // seconds
+        const panInterval = setInterval(() => {
+            panProgress += 0.02;
+            const t = Math.min(panProgress / panDuration, 1);
+            camera.position.lerpVectors(panStart, panEnd, t);
+            camera.lookAt(0, 1, 0);
+            if (t === 1) {
+                clearInterval(panInterval);
+            }
+        }, 1000 / 60); // rotate to gameplay view
         camera.lookAt(0, 1, 0);
         gameStarted = true;
         // startScreen.remove();
