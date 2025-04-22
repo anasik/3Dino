@@ -3,6 +3,9 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { AnimationUtils } from "three";
 import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
+import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
+import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
+import { depth } from "three/tsl";
 
 const clock = new THREE.Clock();
 const scene = new THREE.Scene();
@@ -16,7 +19,7 @@ const camera = new THREE.PerspectiveCamera(
     0.1,
     1000
 );
-camera.position.set(0, 2, 5);
+camera.position.set(5, 0, 0); // start side view
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.shadowMap.enabled = true;
@@ -208,33 +211,65 @@ window.addEventListener("keydown", (e) => {
 });
 
 let cameraBobTime = 0;
-const startScreen = document.createElement("div");
-startScreen.style.position = "absolute";
-startScreen.style.top = "50%";
-startScreen.style.left = "50%";
-startScreen.style.transform = "translate(-50%, -50%)";
-startScreen.style.color = "white";
-startScreen.style.fontSize = "24px";
-startScreen.style.fontFamily = "monospace";
-startScreen.style.textAlign = "center";
-startScreen.innerHTML = `
-  <div style="font-size: 40px;">No Internet</div>
-  <br>
-  <div>Try:</div>
-  <div>&bull; Checking the network cables, modem and router</div>
-  <div>&bull; Reconnecting to Wi-Fi</div>
-  <br>
-  <div>ERR_INTERNET_DISCONNECTED</div>
-  <br>
-  <div style="opacity: 0.5; font-size: 18px;">Press any key to start</div>
-`;
-document.body.appendChild(startScreen);
+let textGroup = new THREE.Group();
+const fontLoader = new FontLoader();
+fontLoader.load(
+    "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
+    (font) => {
+        const textMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            side: THREE.DoubleSide,
+        });
 
-window.addEventListener("keydown", () => {
-  if (!gameStarted) {
-    gameStarted = true;
-    startScreen.remove();
-  }
+        const lines = [
+            { text: "No Internet", size: 0.3, y: 2.5 },
+            { text: "Try:", size: 0.15, y: 1.8 },
+            {
+                text: "• Checking the network cables, modem and router",
+                size: 0.12,
+                y: 1.5,
+            },
+            { text: "• Reconnecting to Wi-Fi", size: 0.12, y: 1.2 },
+            { text: "ERR_INTERNET_DISCONNECTED", size: 0.12, y: 0.8 },
+            { text: "Press any key to start", size: 0.1, y: 0.3, opacity: 0.5 },
+        ];
+        lines.forEach((line) => {
+            const geometry = new TextGeometry(line.text, {
+                font,
+                size: line.size,
+                height: 1,
+                width: 1,
+                depth: 0.1,
+                bevelEnabled: true,
+                bevelSize: 0.005,
+                bevelThickness: 0.01,
+                curveSegments: 4,
+            });
+            geometry.computeBoundingBox();
+            geometry.center();
+            const mesh = new THREE.Mesh(geometry, textMaterial);
+            mesh.position.set(-2.5, line.y, -1);
+            mesh.rotation.y = Math.PI / 2;
+            textGroup.add(mesh);
+        });
+    }
+);
+textGroup.position.set(2, -3, 1);
+scene.add(textGroup);
+
+window.addEventListener("keydown", (e) => {
+    if (!gameStarted) {
+        camera.position.set(0, 2, 5); // rotate to gameplay view
+        camera.lookAt(0, 1, 0);
+        gameStarted = true;
+        // startScreen.remove();
+    } else if (isPaused && pauseOverlay.innerText === "Game Over") {
+        location.reload();
+    } else if (e.key === "Escape") {
+        isPaused = !isPaused;
+        pauseOverlay.innerText = "Paused";
+        pauseOverlay.style.display = isPaused ? "flex" : "none";
+    }
 });
 
 function animate() {
@@ -243,8 +278,8 @@ function animate() {
         controls.update();
         renderer.render(scene, camera);
         return;
-      }
-      
+    }
+
     const delta = clock.getDelta();
     if (dinoMixer) dinoMixer.update(delta * 5);
 
