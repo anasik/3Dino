@@ -291,8 +291,10 @@ function animate() {
         renderer.render(scene, camera);
         return;
     }
-
+    
     const delta = clock.getDelta();
+    score += delta*10;
+    scoreDisplay.innerText = "Score: " + Math.floor(score);
     if (dinoMixer) dinoMixer.update(delta * 5);
 
     if (isJumping && dinoModel) {
@@ -337,8 +339,8 @@ function animate() {
         if (obj.position.z > camera.position.z + 2) {
             scene.remove(obj);
             obstacles.splice(i, 1);
-            score++;
-            scoreDisplay.innerText = "Score: " + score;
+            // score++;
+            // scoreDisplay.innerText = "Score: " + score;
         }
     }
 
