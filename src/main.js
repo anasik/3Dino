@@ -220,16 +220,6 @@ pauseOverlay.innerText = "Paused";
 pauseOverlay.style.fontFamily = "sans-serif";
 document.body.appendChild(pauseOverlay);
 
-window.addEventListener("keydown", (e) => {
-    if (isPaused && pauseOverlay.innerText === "Game Over") {
-        location.reload();
-    } else if (e.key === "Escape") {
-        isPaused = !isPaused;
-        pauseOverlay.innerText = "Paused";
-        pauseOverlay.style.display = isPaused ? "flex" : "none";
-    }
-});
-
 let cameraBobTime = 0;
 let textGroup = new THREE.Group();
 const fontLoader = new FontLoader();
