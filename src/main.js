@@ -42,7 +42,7 @@ scene.add(light);
 
 const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(5, 100),
-    new THREE.MeshStandardMaterial({ color: 0x333333 })
+    new THREE.MeshStandardMaterial({ color: 0xdddddd })
 );
 ground.rotation.x = -Math.PI / 2; // Standard ground rotation
 // Leave other axes untouched
@@ -53,6 +53,7 @@ scene.add(ground);
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
 dirLight.position.set(5, 10, 7.5);
+dirLight.castShadow = true; 
 scene.add(dirLight);
 
 let dinoMixer;
@@ -70,6 +71,12 @@ loader.load("dino.glb", (gltf) => {
     dinoModel.scale.set(0.1, 0.1, 0.1);
     dinoModel.rotation.y = Math.PI;
     dinoModel.position.set(0, 0, 2);
+    dinoModel.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+        }
+    });
+
     scene.add(dinoModel);
 
     if (gltf.animations.length > 0) {
@@ -110,6 +117,9 @@ function spawnCactus() {
     cactus.rotation.x = Math.PI / -2;
     cactus.position.set(0, 0, -30);
     cactus.name = "obstacle";
+    cactus.traverse((child) => {
+        if (child.isMesh) child.castShadow = true;
+    });
     scene.add(cactus);
     obstacles.push(cactus);
 }
@@ -118,11 +128,14 @@ function spawnPterodactyl() {
     if (!pteroModel || !pteroClip) return;
 
     const ptero = SkeletonUtils.clone(pteroModel);
+    console.log(ptero);
     // ptero.scale.set(0.3, 0.3, 0.3);
     // ptero.rotation.y = Math.PI;
     ptero.position.set(0, 0, -30);
     ptero.name = "obstacle";
-
+    ptero.traverse((child) => {
+        if (child.isMesh) child.castShadow = true;
+    });
     // Force visibility
     ptero.visible = true;
     scene.add(ptero);
