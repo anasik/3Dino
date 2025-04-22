@@ -168,6 +168,7 @@ window.addEventListener("keyup", (e) => {
 });
 
 let isPaused = false;
+let gameStarted = false;
 let score = 0;
 const scoreDisplay = document.createElement("div");
 scoreDisplay.style.position = "absolute";
@@ -176,7 +177,7 @@ scoreDisplay.style.left = "10px";
 scoreDisplay.style.color = "white";
 scoreDisplay.style.fontSize = "20px";
 scoreDisplay.style.fontFamily = "Orbitron, sans-serif";
-// scoreDisplay.style.textShadow = "0 0 5px #00ff99";
+scoreDisplay.style.textShadow = "0 0 5px #00ff99";
 scoreDisplay.innerText = "Score: 0";
 document.body.appendChild(scoreDisplay);
 
@@ -207,9 +208,43 @@ window.addEventListener("keydown", (e) => {
 });
 
 let cameraBobTime = 0;
+const startScreen = document.createElement("div");
+startScreen.style.position = "absolute";
+startScreen.style.top = "50%";
+startScreen.style.left = "50%";
+startScreen.style.transform = "translate(-50%, -50%)";
+startScreen.style.color = "white";
+startScreen.style.fontSize = "24px";
+startScreen.style.fontFamily = "monospace";
+startScreen.style.textAlign = "center";
+startScreen.innerHTML = `
+  <div style="font-size: 40px;">No Internet</div>
+  <br>
+  <div>Try:</div>
+  <div>&bull; Checking the network cables, modem and router</div>
+  <div>&bull; Reconnecting to Wi-Fi</div>
+  <br>
+  <div>ERR_INTERNET_DISCONNECTED</div>
+  <br>
+  <div style="opacity: 0.5; font-size: 18px;">Press any key to start</div>
+`;
+document.body.appendChild(startScreen);
+
+window.addEventListener("keydown", () => {
+  if (!gameStarted) {
+    gameStarted = true;
+    startScreen.remove();
+  }
+});
+
 function animate() {
     requestAnimationFrame(animate);
-    if (isPaused) return;
+    if (!gameStarted || isPaused) {
+        controls.update();
+        renderer.render(scene, camera);
+        return;
+      }
+      
     const delta = clock.getDelta();
     if (dinoMixer) dinoMixer.update(delta * 5);
 
