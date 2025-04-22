@@ -17,8 +17,8 @@
 1. Clone this repo:
    ```
    bash
-   git clone https://github.com/yourname/ghibli-dino-extension
-   cd ghibli-dino-extension
+   git clone https://github.com/anasik/3Dino
+   cd 3Dino
    ```
 
 2. Install and build:
