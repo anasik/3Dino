@@ -6,7 +6,9 @@ import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 
 const clock = new THREE.Clock();
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111111);
+scene.background = new THREE.Color(0x202020);
+const skyLight = new THREE.HemisphereLight(0x88ccff, 0x222233, 1);
+scene.add(skyLight);
 
 const camera = new THREE.PerspectiveCamera(
     60,
@@ -17,6 +19,7 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 2, 5);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.shadowMap.enabled = true;
 renderer.setSize(window.innerWidth * 0.8, window.innerHeight * 0.8);
 document.body.appendChild(renderer.domElement);
 
@@ -26,6 +29,17 @@ controls.enableDamping = true;
 const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
 light.position.set(0, 20, 0);
 scene.add(light);
+
+const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(5, 100),
+    new THREE.MeshStandardMaterial({ color: 0x333333 })
+);
+ground.rotation.x = -Math.PI / 2; // Standard ground rotation
+// Leave other axes untouched
+ground.position.y = -0.05;
+ground.position.x = -2;
+ground.receiveShadow = true;
+scene.add(ground);
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
 dirLight.position.set(5, 10, 7.5);
@@ -161,7 +175,8 @@ scoreDisplay.style.top = "10px";
 scoreDisplay.style.left = "10px";
 scoreDisplay.style.color = "white";
 scoreDisplay.style.fontSize = "20px";
-scoreDisplay.style.fontFamily = "monospace";
+scoreDisplay.style.fontFamily = "Orbitron, sans-serif";
+// scoreDisplay.style.textShadow = "0 0 5px #00ff99";
 scoreDisplay.innerText = "Score: 0";
 document.body.appendChild(scoreDisplay);
 
@@ -191,6 +206,7 @@ window.addEventListener("keydown", (e) => {
     }
 });
 
+let cameraBobTime = 0;
 function animate() {
     requestAnimationFrame(animate);
     if (isPaused) return;
@@ -250,6 +266,8 @@ function animate() {
         lastSpawn = time;
     }
 
+    cameraBobTime += delta * 6;
+    camera.position.y = 2 + Math.sin(cameraBobTime) * 0.03;
     controls.update();
     renderer.render(scene, camera);
 }
@@ -259,5 +277,9 @@ animate();
 window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+    document.head.insertAdjacentHTML(
+        "beforeend",
+        `<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">`
+    );
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
