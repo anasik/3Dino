@@ -3,8 +3,6 @@
     "name": "3Dino Extension",
     "version": "1.0",
     "description": "3D Offline dinosaur game",
-    "permissions": [],
-    "host_permissions": ["<all_urls>"],
     "background": {
       "service_worker": "background.js"
     },
