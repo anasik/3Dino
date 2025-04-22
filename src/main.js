@@ -23,7 +23,14 @@ camera.position.set(5, 0, 0); // start side view
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.shadowMap.enabled = true;
-renderer.setSize(window.innerWidth * 0.8, window.innerHeight * 0.8);
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.domElement.style.display = "block";
+renderer.domElement.style.margin = "0 auto";
+renderer.domElement.style.maxWidth = "100vw";
+renderer.domElement.style.maxHeight = "100vh";
+renderer.domElement.style.objectFit = "contain";
+
 document.body.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -40,7 +47,7 @@ const ground = new THREE.Mesh(
 ground.rotation.x = -Math.PI / 2; // Standard ground rotation
 // Leave other axes untouched
 ground.position.y = -0.05;
-ground.position.x = -2;
+ground.position.x = 0;
 ground.receiveShadow = true;
 scene.add(ground);
 
@@ -62,7 +69,7 @@ loader.load("dino.glb", (gltf) => {
     dinoModel = gltf.scene;
     dinoModel.scale.set(0.1, 0.1, 0.1);
     dinoModel.rotation.y = Math.PI;
-    dinoModel.position.set(-2, 0, 2);
+    dinoModel.position.set(0, 0, 2);
     scene.add(dinoModel);
 
     if (gltf.animations.length > 0) {
@@ -101,7 +108,7 @@ function spawnCactus() {
         cactusList[Math.floor(Math.random() * cactusList.length)].clone();
     cactus.scale.set(0.2, 0.2, 0.2);
     cactus.rotation.x = Math.PI / -2;
-    cactus.position.set(-2, 0, -30);
+    cactus.position.set(0, 0, -30);
     cactus.name = "obstacle";
     scene.add(cactus);
     obstacles.push(cactus);
@@ -112,8 +119,8 @@ function spawnPterodactyl() {
 
     const ptero = SkeletonUtils.clone(pteroModel);
     // ptero.scale.set(0.3, 0.3, 0.3);
-    ptero.rotation.y = Math.PI;
-    ptero.position.set(-2, 0, -30);
+    // ptero.rotation.y = Math.PI;
+    ptero.position.set(0, 0, -30);
     ptero.name = "obstacle";
 
     // Force visibility
@@ -340,7 +347,7 @@ function animate() {
             }
         }
 
-        if (obj.position.z > 2) {
+        if (obj.position.z > 5) {
             scene.remove(obj);
             obstacles.splice(i, 1);
             // score++;
