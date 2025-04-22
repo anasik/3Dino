@@ -291,9 +291,9 @@ function animate() {
         renderer.render(scene, camera);
         return;
     }
-    
+
     const delta = clock.getDelta();
-    score += delta*10;
+    score += delta * 10;
     scoreDisplay.innerText = "Score: " + Math.floor(score);
     if (dinoMixer) dinoMixer.update(delta * 5);
 
@@ -324,8 +324,12 @@ function animate() {
 
         // Game over: simple bounding box collision
         if (dinoModel && obj.name === "obstacle") {
-            const dinoBox = new THREE.Box3().setFromObject(dinoModel);
-            const objBox = new THREE.Box3().setFromObject(obj);
+            const dinoBox = new THREE.Box3()
+                .setFromObject(dinoModel)
+                .expandByScalar(-0.05);
+            const objBox = new THREE.Box3()
+                .setFromObject(obj)
+                .expandByScalar(-0.05);
             if (dinoBox.intersectsBox(objBox)) {
                 isPaused = true;
                 pauseOverlay.innerText = "Game Over";
@@ -336,7 +340,7 @@ function animate() {
             }
         }
 
-        if (obj.position.z > camera.position.z + 2) {
+        if (obj.position.z > 2) {
             scene.remove(obj);
             obstacles.splice(i, 1);
             // score++;
