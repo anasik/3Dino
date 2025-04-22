@@ -199,7 +199,7 @@ scoreDisplay.style.top = "10px";
 scoreDisplay.style.left = "10px";
 scoreDisplay.style.color = "white";
 scoreDisplay.style.fontSize = "20px";
-scoreDisplay.style.fontFamily = "Orbitron, sans-serif";
+scoreDisplay.style.fontFamily = "Orbitron, system-ui, sans-serif";
 scoreDisplay.style.textShadow = "0 0 5px #00ff99";
 scoreDisplay.innerText = "Score: 0";
 document.body.appendChild(scoreDisplay);
@@ -234,7 +234,7 @@ let cameraBobTime = 0;
 let textGroup = new THREE.Group();
 const fontLoader = new FontLoader();
 fontLoader.load(
-    "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
+    "/helvetiker_regular.typeface.json",
     (font) => {
         const textMaterial = new THREE.MeshStandardMaterial({
             color: 0xffffff,
@@ -391,3 +391,8 @@ window.addEventListener("resize", () => {
     );
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+window.addEventListener("online", () => {
+    console.log("Back online — closing tab");
+    window.close();
+  });
