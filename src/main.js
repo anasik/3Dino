@@ -7,21 +7,46 @@ import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 import { depth } from "three/tsl";
 
+const spawnInterval = 2;
+const speed = 5;
+const gravity = -20;
+const jumpPower = 8;
+const mixers = [];
+const obstacles = [];
+const loader = new GLTFLoader();
+const cactusList = [];
 const clock = new THREE.Clock();
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x202020);
 const skyLight = new THREE.HemisphereLight(0x88ccff, 0x222233, 1);
-scene.add(skyLight);
-
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(5, 100),
+    new THREE.MeshStandardMaterial({ color: 0xdddddd })
+);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
 const camera = new THREE.PerspectiveCamera(
     60,
     window.innerWidth / window.innerHeight,
     0.1,
     1000
 );
-camera.position.set(5, 0, 0); // start side view
+const controls = new OrbitControls(camera, renderer.domElement);
+let highScore = parseInt(localStorage.getItem("highScore")) || 0;
+let dinoMixer;
+let dinoModel;
+let pteroModel = null;
+let pteroClip = null;
+let lastSpawn = 0;
+let isDucking = false;
+let isJumping = false;
+let jumpVelocity = 0;
+let jumpHeight = 0;
+let isPaused = false;
+let gameStarted = false;
+let score = 0;
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+camera.position.set(5, 0, 0); // start side view
 renderer.shadowMap.enabled = true;
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -30,40 +55,20 @@ renderer.domElement.style.margin = "0 auto";
 renderer.domElement.style.maxWidth = "100vw";
 renderer.domElement.style.maxHeight = "100vh";
 renderer.domElement.style.objectFit = "contain";
-
 document.body.appendChild(renderer.domElement);
-
-const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-
-const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
 light.position.set(0, 20, 0);
-scene.add(light);
-
-const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(5, 100),
-    new THREE.MeshStandardMaterial({ color: 0xdddddd })
-);
-ground.rotation.x = -Math.PI / 2; // Standard ground rotation
-// Leave other axes untouched
+ground.rotation.x = -Math.PI / 2;
 ground.position.y = -0.05;
 ground.position.x = 0;
 ground.receiveShadow = true;
-scene.add(ground);
-
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
 dirLight.position.set(5, 10, 7.5);
 dirLight.castShadow = true;
+scene.background = new THREE.Color(0x202020);
+scene.add(skyLight);
+scene.add(light);
+scene.add(ground);
 scene.add(dirLight);
-
-let dinoMixer;
-let dinoModel;
-const mixers = [];
-const obstacles = [];
-const loader = new GLTFLoader();
-const cactusList = [];
-let pteroModel = null;
-let pteroClip = null;
 
 // 🦖 Dinosaur
 loader.load("dino.glb", (gltf) => {
@@ -109,92 +114,6 @@ loader.load("cactus__pack.glb", (gltf) => {
     });
 });
 
-function spawnCactus() {
-    if (cactusList.length === 0) return;
-    const cactus =
-        cactusList[Math.floor(Math.random() * cactusList.length)].clone();
-    cactus.scale.set(0.2, 0.2, 0.2);
-    cactus.rotation.x = Math.PI / -2;
-    cactus.position.set(0, 0, -30);
-    cactus.name = "cactus";
-    cactus.traverse((child) => {
-        if (child.isMesh) child.castShadow = true;
-    });
-    scene.add(cactus);
-    obstacles.push(cactus);
-}
-
-function spawnPterodactyl() {
-    if (!pteroModel || !pteroClip) return;
-
-    const ptero = SkeletonUtils.clone(pteroModel);
-    console.log(ptero);
-    // ptero.scale.set(0.3, 0.3, 0.3);
-    // ptero.rotation.y = Math.PI;
-    ptero.position.set(0, 0, -30);
-    ptero.name = "ptero";
-    ptero.traverse((child) => {
-        if (child.isMesh) child.castShadow = true;
-    });
-    // Force visibility
-    ptero.visible = true;
-    scene.add(ptero);
-    obstacles.push(ptero);
-
-    const mixer = new THREE.AnimationMixer(ptero);
-    const action = mixer.clipAction(pteroClip);
-    action.reset();
-    action.setLoop(THREE.LoopRepeat);
-    action.play();
-    mixers.push(mixer);
-}
-
-let lastSpawn = 0;
-const spawnInterval = 2;
-const speed = 5;
-
-let isDucking = false;
-let isJumping = false;
-let jumpVelocity = 0;
-let jumpHeight = 0;
-const gravity = -20;
-const jumpPower = 8;
-
-function duckDino() {
-    if (!dinoModel || isJumping) return;
-    dinoModel.scale.y = 0.05;
-    dinoModel.position.y = -0.05;
-    isDucking = true;
-}
-
-function resetDinoPose() {
-    if (!dinoModel) return;
-    dinoModel.scale.y = 0.1;
-    dinoModel.position.y = 0;
-    isDucking = false;
-}
-
-function triggerJump() {
-    if (!dinoModel || isJumping) return;
-    isJumping = true;
-    jumpVelocity = jumpPower;
-    dinoModel.scale.y = 0.14; // stretch up for springy effect
-}
-
-window.addEventListener("keydown", (e) => {
-    if (isPaused || !clock.running) return;
-    if (e.key === "ArrowDown") duckDino();
-    if (e.key === "ArrowUp") triggerJump();
-});
-
-window.addEventListener("keyup", (e) => {
-    if (e.key === "ArrowDown") resetDinoPose();
-});
-
-let isPaused = false;
-let gameStarted = false;
-let score = 0;
-let highScore = parseInt(localStorage.getItem("highScore")) || 0;
 const scoreDisplay = document.createElement("div");
 scoreDisplay.style.position = "absolute";
 scoreDisplay.style.top = "10px";
@@ -266,30 +185,7 @@ fontLoader.load("/helvetiker_regular.typeface.json", (font) => {
 textGroup.position.set(2, -3, 1);
 scene.add(textGroup);
 
-window.addEventListener("keydown", (e) => {
-    if (!gameStarted) {
-        const panStart = camera.position.clone();
-        const panEnd = new THREE.Vector3(0, 2, 5);
-        let panProgress = 0;
-        const panDuration = 1.5; // seconds
-        const panInterval = setInterval(() => {
-            panProgress += 0.02;
-            const t = Math.min(panProgress / panDuration, 1);
-            camera.position.lerpVectors(panStart, panEnd, t);
-            if (t === 1) {
-                clearInterval(panInterval);
-                gameStarted = true;
-            }
-        }, 1000 / 60); // rotate to gameplay view
-    } else if (isPaused && pauseOverlay.innerText === "Game Over") {
-        location.reload();
-    } else if (e.key === "Escape") {
-        isPaused = !isPaused;
-        clock.running ? clock.stop() : clock.start();
-        pauseOverlay.innerText = "Paused";
-        pauseOverlay.style.display = isPaused ? "flex" : "none";
-    }
-});
+animate();
 
 function animate() {
     requestAnimationFrame(animate);
@@ -301,7 +197,9 @@ function animate() {
 
     const delta = clock.getDelta();
     score += delta * 10;
-    scoreDisplay.innerText = `Score: ${Math.floor(score)} | High Score: ${highScore}`;
+    scoreDisplay.innerText = `Score: ${Math.floor(
+        score
+    )} | High Score: ${highScore}`;
     if (dinoMixer) dinoMixer.update(delta * 5);
 
     if (isJumping && dinoModel) {
@@ -327,8 +225,9 @@ function animate() {
 
     for (let i = obstacles.length - 1; i >= 0; i--) {
         const obj = obstacles[i];
-        if (obj.name === "ptero") obj.position.z += 2 * speed * delta;
-        if (obj.name === "cactus") obj.position.z += speed * delta;
+        const speedo = speed + Math.min(Math.floor(score / 700), 15);
+        if (obj.name === "ptero") obj.position.z += 2 * speedo * delta;
+        if (obj.name === "cactus") obj.position.z += speedo * delta;
 
         // Game over: simple bounding box collision
         if (dinoModel) {
@@ -370,7 +269,63 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-animate();
+function spawnCactus() {
+    if (cactusList.length === 0) return;
+    const cactus =
+        cactusList[Math.floor(Math.random() * cactusList.length)].clone();
+    cactus.scale.set(0.2, 0.2, 0.2);
+    cactus.rotation.x = Math.PI / -2;
+    cactus.position.set(0, 0, -30);
+    cactus.name = "cactus";
+    cactus.traverse((child) => {
+        if (child.isMesh) child.castShadow = true;
+    });
+    scene.add(cactus);
+    obstacles.push(cactus);
+}
+
+function spawnPterodactyl() {
+    if (!pteroModel || !pteroClip) return;
+
+    const ptero = SkeletonUtils.clone(pteroModel);
+    ptero.position.set(0, 0, -30);
+    ptero.name = "ptero";
+    ptero.traverse((child) => {
+        if (child.isMesh) child.castShadow = true;
+    });
+    // Force visibility
+    ptero.visible = true;
+    scene.add(ptero);
+    obstacles.push(ptero);
+
+    const mixer = new THREE.AnimationMixer(ptero);
+    const action = mixer.clipAction(pteroClip);
+    action.reset();
+    action.setLoop(THREE.LoopRepeat);
+    action.play();
+    mixers.push(mixer);
+}
+
+function duckDino() {
+    if (!dinoModel || isJumping) return;
+    dinoModel.scale.y = 0.05;
+    dinoModel.position.y = -0.05;
+    isDucking = true;
+}
+
+function resetDinoPose() {
+    if (!dinoModel) return;
+    dinoModel.scale.y = 0.1;
+    dinoModel.position.y = 0;
+    isDucking = false;
+}
+
+function triggerJump() {
+    if (!dinoModel || isJumping) return;
+    isJumping = true;
+    jumpVelocity = jumpPower;
+    dinoModel.scale.y = 0.14; // stretch up for springy effect
+}
 
 window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -389,4 +344,39 @@ window.addEventListener("online", () => {
         localStorage.setItem("highScore", highScore);
     }
     window.close();
+});
+
+window.addEventListener("keydown", (e) => {
+    if (isPaused || !clock.running) return;
+    if (e.key === "ArrowDown") duckDino();
+    if (e.key === "ArrowUp") triggerJump();
+});
+
+window.addEventListener("keyup", (e) => {
+    if (e.key === "ArrowDown") resetDinoPose();
+});
+
+window.addEventListener("keydown", (e) => {
+    if (!gameStarted) {
+        const panStart = camera.position.clone();
+        const panEnd = new THREE.Vector3(0, 2, 5);
+        let panProgress = 0;
+        const panDuration = 1.5; // seconds
+        const panInterval = setInterval(() => {
+            panProgress += 0.02;
+            const t = Math.min(panProgress / panDuration, 1);
+            camera.position.lerpVectors(panStart, panEnd, t);
+            if (t === 1) {
+                clearInterval(panInterval);
+                gameStarted = true;
+            }
+        }, 1000 / 60); // rotate to gameplay view
+    } else if (isPaused && pauseOverlay.innerText === "Game Over") {
+        location.reload();
+    } else if (e.key === "Escape") {
+        isPaused = !isPaused;
+        clock.running ? clock.stop() : clock.start();
+        pauseOverlay.innerText = "Paused";
+        pauseOverlay.style.display = isPaused ? "flex" : "none";
+    }
 });
