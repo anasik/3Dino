@@ -122,8 +122,19 @@ scoreDisplay.style.color = "white";
 scoreDisplay.style.fontSize = "20px";
 scoreDisplay.style.fontFamily = "Orbitron, system-ui, sans-serif";
 scoreDisplay.style.textShadow = "0 0 5px #00ff99";
-scoreDisplay.innerText = `Score: 0 | High Score: ${highScore}`;
+scoreDisplay.innerText = `Score: 0`;
 document.body.appendChild(scoreDisplay);
+
+const highScoreDisplay = document.createElement("div");
+highScoreDisplay.style.position = "absolute";
+highScoreDisplay.style.top = "10px";
+highScoreDisplay.style.right = "10px";
+highScoreDisplay.style.color = "white";
+highScoreDisplay.style.fontSize = "20px";
+highScoreDisplay.style.fontFamily = "Orbitron, system-ui, sans-serif";
+highScoreDisplay.style.textShadow = "0 0 5px #00ff99";
+highScoreDisplay.innerText = `High Score: ${highScore}`;
+document.body.appendChild(highScoreDisplay);
 
 const pauseOverlay = document.createElement("div");
 pauseOverlay.style.position = "absolute";
@@ -197,9 +208,7 @@ function animate() {
 
     const delta = clock.getDelta();
     score += delta * 10;
-    scoreDisplay.innerText = `Score: ${Math.floor(
-        score
-    )} | High Score: ${highScore}`;
+    scoreDisplay.innerText = `Score: ${Math.floor(score)}`;
     if (dinoMixer) dinoMixer.update(delta * 5);
 
     if (isJumping && dinoModel) {
@@ -246,7 +255,8 @@ function animate() {
                     localStorage.setItem("highScore", highScore);
                 }
                 score = 0;
-                scoreDisplay.innerText = `Score: 0 | High Score: ${highScore}`;
+                scoreDisplay.innerText = `Score: 0`;
+                highScoreDisplay.innerText = `High Score: ${highScore}`;
                 return;
             }
         }
