@@ -194,6 +194,7 @@ window.addEventListener("keyup", (e) => {
 let isPaused = false;
 let gameStarted = false;
 let score = 0;
+let highScore = parseInt(localStorage.getItem("highScore")) || 0;
 const scoreDisplay = document.createElement("div");
 scoreDisplay.style.position = "absolute";
 scoreDisplay.style.top = "10px";
@@ -202,7 +203,7 @@ scoreDisplay.style.color = "white";
 scoreDisplay.style.fontSize = "20px";
 scoreDisplay.style.fontFamily = "Orbitron, system-ui, sans-serif";
 scoreDisplay.style.textShadow = "0 0 5px #00ff99";
-scoreDisplay.innerText = "Score: 0";
+scoreDisplay.innerText = `Score: 0 | High Score: ${highScore}`;
 document.body.appendChild(scoreDisplay);
 
 const pauseOverlay = document.createElement("div");
@@ -300,7 +301,7 @@ function animate() {
 
     const delta = clock.getDelta();
     score += delta * 10;
-    scoreDisplay.innerText = "Score: " + Math.floor(score);
+    scoreDisplay.innerText = `Score: ${Math.floor(score)} | High Score: ${highScore}`;
     if (dinoMixer) dinoMixer.update(delta * 5);
 
     if (isJumping && dinoModel) {
@@ -341,8 +342,12 @@ function animate() {
                 isPaused = true;
                 pauseOverlay.innerText = "Game Over";
                 pauseOverlay.style.display = "flex";
+                if (score > highScore) {
+                    highScore = Math.floor(score);
+                    localStorage.setItem("highScore", highScore);
+                }
                 score = 0;
-                scoreDisplay.innerText = "Score: 0";
+                scoreDisplay.innerText = `Score: 0 | High Score: ${highScore}`;
                 return;
             }
         }
@@ -350,8 +355,6 @@ function animate() {
         if (obj.position.z > 5) {
             scene.remove(obj);
             obstacles.splice(i, 1);
-            // score++;
-            // scoreDisplay.innerText = "Score: " + score;
         }
     }
 
@@ -381,5 +384,9 @@ window.addEventListener("resize", () => {
 
 window.addEventListener("online", () => {
     console.log("Back online — closing tab");
+    if (score > highScore) {
+        highScore = Math.floor(score);
+        localStorage.setItem("highScore", highScore);
+    }
     window.close();
 });
