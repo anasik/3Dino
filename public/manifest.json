@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "3Dino Extension",
+    "name": "3Dino",
     "version": "1.0",
     "description": "3D Offline dinosaur game",
     "background": {
