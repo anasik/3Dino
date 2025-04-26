@@ -53,7 +53,7 @@ scene.add(ground);
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
 dirLight.position.set(5, 10, 7.5);
-dirLight.castShadow = true; 
+dirLight.castShadow = true;
 scene.add(dirLight);
 
 let dinoMixer;
@@ -116,7 +116,7 @@ function spawnCactus() {
     cactus.scale.set(0.2, 0.2, 0.2);
     cactus.rotation.x = Math.PI / -2;
     cactus.position.set(0, 0, -30);
-    cactus.name = "obstacle";
+    cactus.name = "cactus";
     cactus.traverse((child) => {
         if (child.isMesh) child.castShadow = true;
     });
@@ -132,7 +132,7 @@ function spawnPterodactyl() {
     // ptero.scale.set(0.3, 0.3, 0.3);
     // ptero.rotation.y = Math.PI;
     ptero.position.set(0, 0, -30);
-    ptero.name = "obstacle";
+    ptero.name = "ptero";
     ptero.traverse((child) => {
         if (child.isMesh) child.castShadow = true;
     });
@@ -182,6 +182,7 @@ function triggerJump() {
 }
 
 window.addEventListener("keydown", (e) => {
+    if (isPaused || !clock.running) return;
     if (e.key === "ArrowDown") duckDino();
     if (e.key === "ArrowUp") triggerJump();
 });
@@ -223,47 +224,44 @@ document.body.appendChild(pauseOverlay);
 let cameraBobTime = 0;
 let textGroup = new THREE.Group();
 const fontLoader = new FontLoader();
-fontLoader.load(
-    "/helvetiker_regular.typeface.json",
-    (font) => {
-        const textMaterial = new THREE.MeshStandardMaterial({
-            color: 0xffffff,
-            side: THREE.DoubleSide,
-        });
+fontLoader.load("/helvetiker_regular.typeface.json", (font) => {
+    const textMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        side: THREE.DoubleSide,
+    });
 
-        const lines = [
-            { text: "No Internet", size: 0.3, y: 2.5 },
-            { text: "Try:", size: 0.15, y: 1.8 },
-            {
-                text: "• Checking the network cables, modem and router",
-                size: 0.12,
-                y: 1.5,
-            },
-            { text: "• Reconnecting to Wi-Fi", size: 0.12, y: 1.2 },
-            { text: "ERR_INTERNET_DISCONNECTED", size: 0.12, y: 0.8 },
-            { text: "Press any key to start", size: 0.1, y: 0.3, opacity: 0.5 },
-        ];
-        lines.forEach((line) => {
-            const geometry = new TextGeometry(line.text, {
-                font,
-                size: line.size,
-                height: 1,
-                width: 1,
-                depth: 0.01,
-                bevelEnabled: true,
-                bevelSize: 0.005,
-                bevelThickness: 0.01,
-                curveSegments: 4,
-            });
-            geometry.computeBoundingBox();
-            geometry.center();
-            const mesh = new THREE.Mesh(geometry, textMaterial);
-            mesh.position.set(-2.5, line.y, -1);
-            mesh.rotation.y = Math.PI / 2;
-            textGroup.add(mesh);
+    const lines = [
+        { text: "No Internet", size: 0.3, y: 2.5 },
+        { text: "Try:", size: 0.15, y: 1.8 },
+        {
+            text: "• Checking the network cables, modem and router",
+            size: 0.12,
+            y: 1.5,
+        },
+        { text: "• Reconnecting to Wi-Fi", size: 0.12, y: 1.2 },
+        { text: "ERR_INTERNET_DISCONNECTED", size: 0.12, y: 0.8 },
+        { text: "Press any key to start", size: 0.1, y: 0.3, opacity: 0.5 },
+    ];
+    lines.forEach((line) => {
+        const geometry = new TextGeometry(line.text, {
+            font,
+            size: line.size,
+            height: 1,
+            width: 1,
+            depth: 0.01,
+            bevelEnabled: true,
+            bevelSize: 0.005,
+            bevelThickness: 0.01,
+            curveSegments: 4,
         });
-    }
-);
+        geometry.computeBoundingBox();
+        geometry.center();
+        const mesh = new THREE.Mesh(geometry, textMaterial);
+        mesh.position.set(-2.5, line.y, -1);
+        mesh.rotation.y = Math.PI / 2;
+        textGroup.add(mesh);
+    });
+});
 textGroup.position.set(2, -3, 1);
 scene.add(textGroup);
 
@@ -277,18 +275,16 @@ window.addEventListener("keydown", (e) => {
             panProgress += 0.02;
             const t = Math.min(panProgress / panDuration, 1);
             camera.position.lerpVectors(panStart, panEnd, t);
-            camera.lookAt(0, 1, 0);
             if (t === 1) {
                 clearInterval(panInterval);
+                gameStarted = true;
             }
         }, 1000 / 60); // rotate to gameplay view
-        camera.lookAt(0, 1, 0);
-        gameStarted = true;
-        // startScreen.remove();
     } else if (isPaused && pauseOverlay.innerText === "Game Over") {
         location.reload();
     } else if (e.key === "Escape") {
         isPaused = !isPaused;
+        clock.running ? clock.stop() : clock.start();
         pauseOverlay.innerText = "Paused";
         pauseOverlay.style.display = isPaused ? "flex" : "none";
     }
@@ -330,10 +326,11 @@ function animate() {
 
     for (let i = obstacles.length - 1; i >= 0; i--) {
         const obj = obstacles[i];
-        obj.position.z += speed * delta;
+        if (obj.name === "ptero") obj.position.z += 2 * speed * delta;
+        if (obj.name === "cactus") obj.position.z += speed * delta;
 
         // Game over: simple bounding box collision
-        if (dinoModel && obj.name === "obstacle") {
+        if (dinoModel) {
             const dinoBox = new THREE.Box3()
                 .setFromObject(dinoModel)
                 .expandByScalar(-0.05);
@@ -385,4 +382,4 @@ window.addEventListener("resize", () => {
 window.addEventListener("online", () => {
     console.log("Back online — closing tab");
     window.close();
-  });
+});
